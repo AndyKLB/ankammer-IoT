@@ -15,14 +15,25 @@ echo "================================================="
 # --node-ip                   → IP de ce nœud dans le cluster
 # --bind-address              → IP d'écoute de l'API Server
 # --advertise-address         → IP dans les certificats TLS
+# La commande d'installation complète :
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="\
 	--write-kubeconfig-mode=644 \
 	--node-ip=${SERVER_IP} \
 	--bind-address=${SERVER_IP} \
 	--advertise-address=${SERVER_IP} sh -
 
+
+# ─── ÉTAPE 4 : ATTENDRE LE DÉMARRAGE COMPLET ──────────────────────
+# K3s a besoin de quelques secondes pour :
+# - Initialiser la base de données SQLite
+# - Générer les certificats TLS
+# - Démarrer Traefik, CoreDNS, metrics-server
+# - Générer le token de jonction
 echo ">>> Waiting for complete launching of K3s..."
 sleep 40
+
+# On attend aussi que l'API soit vraiment disponible
+# La commande "kubectl get nodes" échoue si l'API n'est pas prête
 echo ">>> Waiting for kubernetes API..."
 TRIES=0
 until kubectl get nodes > /dev/null 2>&1; do
@@ -63,11 +74,11 @@ echo ""
 echo "================================================="
 echo "K3s server successfully installed"
 echo "================================================="
-echo "Preview		:"
-echo "Hostname		: $(hostname)"
-echo "				:"
-echo "				:"
-echo "				:"
-echo "				:"
+echo " Preview			:"
+echo " - Hostname		: $(hostname)"
+echo " - Private ip		: ${SERVER_IP}"
+echo " - K3s version	: $(k3s --version | head -1)"
+echo " - Kubeconfig		: /etc/rancher/k3s/k3s.yaml"
+echo " - token			: /vagrant/node-token"
 echo "================================================="
 
