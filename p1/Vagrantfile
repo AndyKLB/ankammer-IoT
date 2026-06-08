@@ -4,4 +4,122 @@ SERVER_NAME = "#{LOGIN}S"
 WORKER_NAME = "#{LOGIN}SW"
 
 SERVER_IP = "192.168.56.110"
-WORKER_IP = "192.168.56.111" 
+WORKER_IP = "192.168.56.111"
+
+
+# ════════════════════════════════════════════════════════════════
+# DÉBUT DE LA CONFIGURATION
+#
+# Vagrant.configure("2") : utilise la version 2 de l'API Vagrant
+#   "2" est un numéro de version de l'API, pas la version du logiciel
+#   Toujours mettre "2" avec les versions modernes de Vagrant
+#
+# do |config| : ouvre un bloc de code
+#   |config| = la variable qui représente la configuration globale
+#   Tout ce qu'on fait avec 'config' s'applique à TOUTES les VMs
+# ════════════════════════════════════════════════════════════════
+
+Vagrant.configure("2") do |config|
+
+    # ──────────────────────────────────────────────────────────────
+    # config.vm.box
+    # Définit l'image de base (box) pour toutes les VMs
+    # "generic/alpine317" = Alpine Linux 3.17 hébergé sur vagrantcloud.com
+    # La box est téléchargée automatiquement la première fois
+    # ──────────────────────────────────────────────────────────────
+    config.vm.box = "generic/alpine317"
+
+    # ──────────────────────────────────────────────────────────────
+    # config.vm.box_check_update
+    # false = ne pas vérifier si une mise à jour de la box est disponible
+    # À chaque vagrant up, Vagrant contacte vagrantcloud.com pour vérifier
+    # En mettant false, on économise du temps (surtout en environnement sans internet)
+    # ──────────────────────────────────────────────────────────────
+    config.vm.box_check_update = false
+
+    server.vm.provision "shell", path: "scripts/common.sh"
+
+
+    # ════════════════════════════════════════════════════════════════
+    # DÉFINITION DE LA MACHINE 1 : SERVEUR K3s
+    #
+    # config.vm.define "nom" do |variable|
+    #   Crée une VM nommée "nom"
+    #   Tout ce qu'on fait avec 'variable' s'applique uniquement à cette VM
+    # ════════════════════════════════════════════════════════════════
+    config.vm.define SERVER_NAME do |server|
+
+        # ──────────────────────────────────────────────────────────
+        # server.vm.hostname
+        # Le nom d'hôte de la machine dans son propre OS Linux
+        # Si tu tapes "hostname" dans la VM, tu vois cette valeur
+        # Aussi utilisé pour les résolutions DNS locales
+        # ──────────────────────────────────────────────────────────
+        server.vm.hostname = SERVER_NAME
+
+        # ──────────────────────────────────────────────────────────
+        # server.vm.network
+        # Configure l'interface réseau
+        #
+        # "private_network" = réseau privé hôte-seulement
+        #   → La VM peut parler à l'hôte
+        #   → Les VMs peuvent se parler entre elles
+        #   → Internet ne peut PAS accéder directement à la VM
+        #   → La VM PEUT accéder à internet (via NAT automatique sur eth0)
+        #
+        # ip: "192.168.56.110" = adresse IP fixe pour cette VM
+        #   → Cette IP ne changera jamais, contrairement à une IP DHCP
+        #   → 192.168.56.x est le réseau par défaut de VirtualBox "host-only"
+        # ──────────────────────────────────────────────────────────
+        server.vm.network "private_network", ip = SERVER_IP
+
+        # ──────────────────────────────────────────────────────────
+        # server.vm.provider
+        # Configuration spécifique au provider VirtualBox
+        # do |vb| : 'vb' représente la config VirtualBox
+        # ──────────────────────────────────────────────────────────
+        server.vm.provider "virtualbox" do |vb|
+
+            # Nom affiché dans l'interface graphique de VirtualBox
+            vb.name = SERVER_NAME
+
+            # Mémoire RAM allouée en mégaoctets
+            # 1024 = 1 Go de RAM
+            # K3s en mode serveur a besoin d'au moins 512 Mo
+            # 1024 est confortable pour éviter les problèmes
+            vb.memory = 1024
+
+            # Nombre de cœurs CPU virtuels alloués
+            # 1 est suffisant pour ce projet
+            vb.cpus = 1
+        end
+        
+        # ──────────────────────────────────────────────────────────
+        # server.vm.provision
+        # Script exécuté sur la VM après son démarrage initial
+        #
+        # "shell" = type de provision (script shell)
+        # path: "scripts/server.sh" = chemin vers le script
+        #   Ce chemin est RELATIF au Vagrantfile
+        #   Dans la VM, le fichier se trouve à /vagrant/scripts/server.sh
+        #   (car /vagrant est le dossier partagé avec le Vagrantfile)
+        #
+        # Le script est exécuté en tant que ROOT automatiquement
+        # Il est exécuté UNE SEULE FOIS lors de la création initiale
+        # Pour le relancer : vagrant provision ou vagrant reload --provision
+        # ──────────────────────────────────────────────────────────
+        server.vm.provision "shell", path: "scripts/server.sh"
+    end
+
+    config.vm.define WORKER_NAME do |worker|
+        worker.vm.hostname = WORKER_NAME
+        worker.vm.network "private_network", ip: WORKER_IP
+
+        worker.vm.provider "virtualbox" do |vb|
+            vb.name = WORKER_NAME
+            vb.memory = 512
+            vb.cpus = 1
+        end
+        worker.vm.provision "shell", path: "scripts/worker.sh"
+    end
+end
