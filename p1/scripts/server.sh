@@ -16,11 +16,12 @@ echo "================================================="
 # --bind-address              → IP d'écoute de l'API Server
 # --advertise-address         → IP dans les certificats TLS
 # La commande d'installation complète :
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="\
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC=" \
 	--write-kubeconfig-mode=644 \
 	--node-ip=${SERVER_IP} \
 	--bind-address=${SERVER_IP} \
-	--advertise-address=${SERVER_IP} sh -
+	--advertise-address=${SERVER_IP}" \
+	sh -
 
 
 # ─── ÉTAPE 4 : ATTENDRE LE DÉMARRAGE COMPLET ──────────────────────
