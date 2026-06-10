@@ -11,5 +11,5 @@ apk update
 echo ">>>> Update success"
 
 echo ">>>> Installing curl"
-apk add curl --no-cache
+apk add curl iputils --no-cache
 

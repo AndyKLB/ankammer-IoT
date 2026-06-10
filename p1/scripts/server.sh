@@ -57,7 +57,7 @@ echo "Pods system launching: "
 kubectl get pods -n kube-system
 
 echo ""
-echo "Copying jonction token to /vagrant/..."
+echo "Copying jonction token at /vagrant/..."
 TOKEN_FILE="/var/lib/rancher/k3s/server/node-token"
 if [ ! -f "$TOKEN_FILE" ]; then
 	echo "Error token file does not exist yet"
