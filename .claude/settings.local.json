@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(wsl bash -lc \"echo '--- VBoxManage dans WSL ? ---'; command -v VBoxManage || echo 'pas de VBoxManage natif dans WSL'; echo '--- VMs vues depuis WSL ---'; VBoxManage list vms 2>/dev/null || VBoxManage.exe list vms 2>/dev/null || echo 'aucune commande VBoxManage utilisable'\")",
+      "PowerShell(wsl bash -lc \"echo HOME=\\\\$HOME; echo SHELL=\\\\$SHELL; getent passwd \\\\$\\(whoami\\) | cut -d: -f7; echo '--- vagrant ---'; which vagrant; vagrant --version; echo '--- box ---'; vagrant box list 2>/dev/null | grep alpine317 || echo 'box alpine317 absente dans WSL'; echo '--- zshrc ---'; ls -la \\\\$HOME/.zshrc 2>/dev/null || echo 'pas de .zshrc'\")",
+      "PowerShell(wsl bash -lc 'echo HOME=$HOME; echo LOGINSHELL=$\\(getent passwd $\\(id -un\\) | cut -d: -f7\\); echo USER=$\\(id -un\\); echo \"--- rc files ---\"; ls -la $HOME/.zshrc $HOME/.bashrc $HOME/.zshenv 2>/dev/null; echo \"--- end ---\"')",
+      "PowerShell(wsl bash -lc 'test -f $HOME/.zshrc && echo \"zshrc: EXISTE\" || echo \"zshrc: ABSENT\"; echo \"--- box list ---\"; vagrant box list; echo \"--- grep wrapper deja present ? ---\"; grep -c \"vagrant-dotfiles\" $HOME/.zshrc 2>/dev/null || echo 0')"
+    ]
+  }
+}
