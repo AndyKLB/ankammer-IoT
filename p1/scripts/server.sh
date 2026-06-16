@@ -16,7 +16,9 @@ echo "================================================="
 # --bind-address              → IP d'écoute de l'API Server
 # --advertise-address         → IP dans les certificats TLS
 # La commande d'installation complète :
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC=" \
+curl -sfL https://get.k3s.io | \
+	 INSTALL_K3S_VERSION="v1.28.15+k3s1" \
+	 INSTALL_K3S_EXEC="\
 	--write-kubeconfig-mode=644 \
 	--node-ip=${SERVER_IP} \
 	--bind-address=${SERVER_IP} \
@@ -57,9 +59,27 @@ echo ""
 echo "Pods system launching: "
 kubectl get pods -n kube-system
 
+if ! mount | grep -q "/vagrant"; then
+	echo "Error, /vagrant is not mounted"
+	exit 1
+fi
+	echo ""/vagrant" is correctly mounted"
+
 echo ""
-echo "Copying jonction token at /vagrant/..."
+echo "Waiting for k3s token"
 TOKEN_FILE="/var/lib/rancher/k3s/server/node-token"
+TRIES=0
+until [ -f "$TOKEN_FILE" ]; do
+	TRIES=$((TRIES + 1))
+	if [ $TRIES -ge 12 ]; then
+		echo "Error, token file at "$TOKEN_FILE" never appeared"
+		exit 1
+	fi
+	echo "Waiting for token file... (${TRIES}/12)"
+	sleep 5
+done
+
+echo "Copying jonction token at /vagrant/..."
 if [ ! -f "$TOKEN_FILE" ]; then
 	echo "Error token file does not exist yet"
 	echo "K3s may have not be launched yet"
