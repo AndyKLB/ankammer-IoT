@@ -1,0 +1,40 @@
+# Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+      - name: app2
+        image: wil42/playground:v1
+        ports:
+        - containerPort: 8888
+
+---
+
+# Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2
+  labels:
+    app: app2
+    tier: app2
+spec:
+  selector:
+    app: app2
+  ports:
+  - name: http
+    port: 8888
+    targetPort: 8888
