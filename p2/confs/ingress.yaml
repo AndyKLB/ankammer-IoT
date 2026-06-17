@@ -14,7 +14,7 @@ spec:
           service:
             name: app1
             port:
-              number: 8888
+              number: 80
   - host: app2.com
     http:
       paths:
@@ -24,7 +24,7 @@ spec:
           service:
             name: app2
             port:
-              number: 8888
+              number: 80
   - http:
       paths:
       - path: /
@@ -33,4 +33,4 @@ spec:
           service:
             name: app3
             port:
-              number: 8888
+              number: 80
