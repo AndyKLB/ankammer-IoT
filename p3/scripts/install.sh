@@ -24,6 +24,7 @@ echo -e "${BOLD}║   K3d + Argo CD + GitOps                     ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
+step "Étape 1/5 : Docker"
 if command -v docker &>/dev/null; then
     success "Docker already installed"
 else
@@ -41,6 +42,7 @@ if ! docker info &>/dev/null; then
 fi
 success "Docker is working!"
 
+step "Étape 2/5 : kubectl"
 if command -v kubectl &>/dev/null; then
     success "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
 else
@@ -53,4 +55,62 @@ else
     success "Kubectl successfully installed: $(kubectl version --client --short 2>/dev/null)"
 fi
 
+step "Étape 3/5 : K3d"
+if command -v k3d &>/dev/null; then
+    success "k3d already installed"
+else
+    info "Installation of k3d..."
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+    success "k3d successfully installed"
+fi
 
+step "Etape 4/5: Cluster K3d"
+CLUSTER_NAME="myCluster"
+if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
+    warning "Cluster: '$CLUSTER_NAME' already created"
+    info "Checking status of '$CLUSTER_NAME'"
+    k3d cluster start "$CLUSTER_NAME" 2>/dev/null || true
+else
+    info "Creation of k3d cluster: '$CLUSTER_NAME'..."
+    k3d cluster create "$CLUSTER_NAME" \
+        --port "8080:80@loadbalancer" \
+        --port "8443:443@loadbalancer" \
+        --wait
+    success "Cluster: "$CLUSTER_NAME" created!"
+fi
+
+info "Waiting for all nodes to be Ready..."
+kubectl wait --for=condition=Ready nodes --all --timeout=120s
+echo ""
+kubectl get nodes
+echo ""
+
+step "Etape 5/5: Namespaces + ArgoCD"
+info "Namespaces creation..."
+kubectl create namespace argocd --dry-run=client -o yaml | kubect apply -f -
+kubectl create namespace dev --dry-run=client -o yaml | kubect apply -f -
+success "Created namespaces: "
+kubect get namespaces | grep -E "argocd|dev"
+info "ArgoCD installation..."
+kubectl apply -n argocd \
+    -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+info "Waiting for Argo CD to be ready"
+kubect wait --for=condition=Available \
+    deployment/argocd-server \
+    -n argocd \
+    --timeout=300s
+success "Argo CD is ready!"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFS_DIR="${SCRIPT_DIR}/../confs"
+ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
+if [ -f "${ARGOCD_CONF}" ]; then
+    info "Applying argo cd config..."
+    kubect apply -f "${ARGOCD_CONF}"
+    success "Argo CD successfully configured!"
+else
+    warning "Argo cd config file not found in : ${CONFS_DIR}"
+    warning "Update repo's URL then apply it: kubectl apply -f p3/confs/argocd-app.yaml"
+fi
+
+ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+    -o jsonpath="{data.password}" 2>/dev/null | base64 -d >/dev/null | echo "password not available")
