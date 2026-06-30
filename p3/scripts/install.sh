@@ -87,15 +87,15 @@ echo ""
 
 step "Etape 5/5: Namespaces + ArgoCD"
 info "Namespaces creation..."
-kubectl create namespace argocd --dry-run=client -o yaml | kubect apply -f -
-kubectl create namespace dev --dry-run=client -o yaml | kubect apply -f -
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
 success "Created namespaces: "
-kubect get namespaces | grep -E "argocd|dev"
+kubectl get namespaces | grep -E "argocd|dev"
 info "ArgoCD installation..."
-kubectl apply -n argocd \
+kubectl apply --server-side -n argocd \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 info "Waiting for Argo CD to be ready"
-kubect wait --for=condition=Available \
+kubectl wait --for=condition=Available \
     deployment/argocd-server \
     -n argocd \
     --timeout=300s
@@ -105,7 +105,7 @@ CONFS_DIR="${SCRIPT_DIR}/../confs"
 ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
-    kubect apply -f "${ARGOCD_CONF}"
+    kubectl apply -f "${ARGOCD_CONF}"
     success "Argo CD successfully configured!"
 else
     warning "Argo cd config file not found in : ${CONFS_DIR}"
