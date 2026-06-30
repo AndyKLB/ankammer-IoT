@@ -6,7 +6,7 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchlabels:
+    matchLabels:
       app: wil-playground
   template:
     metadata:
@@ -20,7 +20,7 @@ spec:
         ports:
         - containerPort: 8888
           name: http
-        ressources:
+        resources:
           requests:
             memory: "64Mi"
             cpu: "50m"
