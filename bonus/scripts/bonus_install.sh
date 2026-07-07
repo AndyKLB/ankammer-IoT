@@ -19,7 +19,7 @@ step()    { echo -e "\n${BOLD}══ $1 ══${NC}"; }
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║   Installation IoT — Partie 3                ║${NC}"
+echo -e "${BOLD}║   Installation IoT — Bonus                ║${NC}"
 echo -e "${BOLD}║   K3d + Argo CD + GitOps                     ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
@@ -89,8 +89,9 @@ step "Etape 5/5: Namespaces + ArgoCD"
 info "Namespaces creation..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace gitlab --dry-run=client -o yaml | kubectl apply -f -
 success "Created namespaces: "
-kubectl get namespaces | grep -E "argocd|dev"
+kubectl get namespaces | grep -E "argocd|dev|gitlab"
 info "ArgoCD installation..."
 kubectl apply --server-side -n argocd \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -109,7 +110,7 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
-ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
+ARGOCD_CONF="${CONFS_DIR}/bonus_argocd-app.yaml"
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
     kubectl apply -f "${ARGOCD_CONF}"
@@ -121,6 +122,8 @@ fi
 
 ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
+GITLAB_PASS=$(kubectl -n gitlab get secret gitlab-gitlab-initial-root-password \
+    -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
@@ -128,7 +131,7 @@ echo -e "${BOLD}║                   INSTALLATION TERMINÉE !                  
 echo -e "${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${GREEN}✓${NC} Cluster K3d : ${CLUSTER_NAME}"
-echo -e "${GREEN}✓${NC} Namespaces  : argocd, dev"
+echo -e "${GREEN}✓${NC} Namespaces  : argocd, dev, gitlab"
 echo -e "${GREEN}✓${NC} Argo CD     : opérationnel"
 echo ""
 echo -e "${BOLD}─── Accès à l'interface Argo CD ───────────────────────────────${NC}"
@@ -141,10 +144,9 @@ echo -e "${BOLD}─── Accès à l'application ──────────
 echo "  Commande : kubectl port-forward svc/wil-playground -n dev 8888:8888 &"
 echo "  Test     : curl http://localhost:8888/"
 echo "  Attendu  : {\"status\":\"ok\",\"message\":\"v1\"}"
-echo ""
-echo -e "${BOLD}─── Démonstration de la mise à jour automatique ───────────────${NC}"
-echo "  1. Modifier p3/confs/deployment.yaml : v1 → v2"
-echo "  2. git add . && git commit -m 'v2' && git push"
-echo "  3. Attendre ~3 minutes (ou forcer dans l'UI Argo CD)"
-echo "  4. curl http://localhost:8888/ → {\"message\": \"v2\"}"
+echo -e "${BOLD}─── Accès à GitLab ─────────────────────────────────────────────${NC}"
+echo "  Commande : kubectl port-forward svc/gitlab-webservice-default -n gitlab 8080:8080 &"
+echo "  URL      : http://localhost:8080/"
+echo "  User     : root"
+echo "  Password : ${GITLAB_PASS}"
 echo ""
