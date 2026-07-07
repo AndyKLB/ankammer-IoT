@@ -99,6 +99,13 @@ kubectl wait --for=condition=Available \
     deployment/argocd-server \
     -n argocd \
     --timeout=300s
+info "Configuring Argo CD for HTTP access behind the ingress..."
+kubectl patch configmap argocd-cmd-params-cm \
+    -n argocd \
+    --type merge \
+    -p '{"data":{"server.insecure":"true"}}'
+kubectl rollout restart deployment/argocd-server -n argocd
+kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
