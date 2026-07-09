@@ -16,12 +16,8 @@ spec:
     spec:
       containers:
       - name: app2
-        image: nginx:alpine
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo "<h1>APP2</h1>" > /usr/share/nginx/html/index.html
-          nginx -g "daemon off;"
+        image: ankammer/app2:v1
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 

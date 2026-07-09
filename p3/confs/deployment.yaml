@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wil-playground
+  name: ankammer-playground
   namespace: dev
 spec:
   replicas: 10
   selector:
     matchLabels:
-      app: wil-playground
+      app: ankammer-playground
   template:
     metadata:
       labels:
-        app: wil-playground
+        app: ankammer-playground
     spec:
       containers:
-      - name: wil-playground
-        image: wil42/playground:v1
+      - name: ankammer-playground
+        image: ankammer/playground:v1
         imagePullPolicy: Always
         ports:
         - containerPort: 8888
@@ -32,11 +32,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: wil-playground
+  name: ankammer-playground
   namespace: dev
 spec:
   selector:
-    app: wil-playground
+    app: ankammer-playground
   ports:
   - name: http
     protocol: TCP
@@ -49,7 +49,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: wil-playground
+  name: ankammer-playground
   namespace: dev
 spec:
   ingressClassName: traefik
@@ -60,7 +60,7 @@ spec:
       - path: /
         pathType: Prefix
         backend:
-          service: # dis envoi sur le service wil-playground sur le port 8888
-            name: wil-playground
+          service: # dis envoi sur le service ankammer-playground sur le port 8888
+            name: ankammer-playground
             port:
               number: 8888
