@@ -18,7 +18,7 @@ spec:
         image: ankammer/playground:v1
         imagePullPolicy: Always
         ports:
-        - containerPort: 8888
+        - containerPort: 80
           name: http
         resources:
           requests:
@@ -41,7 +41,7 @@ spec:
   - name: http
     protocol: TCP
     port: 8888 # port du service exposé existe seulement à l'intérieur du cluster
-    targetPort: 8888 # pod ip expose le port 8888
+    targetPort: 80 # port réellement écouté par nginx dans le conteneur
   type: ClusterIP
 
 ---
@@ -54,7 +54,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-  - host: local.wil.com
+  - host: local.ankammer.com
     http:
       paths:
       - path: /
