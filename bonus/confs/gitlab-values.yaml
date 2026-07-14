@@ -1,0 +1,45 @@
+# bonus/confs/gitlab-values.yaml
+global:
+  edition: ce
+
+  hosts:
+    domain: local.gitlab.com
+    gitlab:
+      name: local.gitlab.com
+    https: false
+
+  ingress:
+    enabled: true
+    class: traefik
+    configureCertmanager: false     # ← orthographe exacte, sous global.ingress
+    tls:
+      enabled: false
+
+  certmanager:
+    install: false                   # ← sous global (API chart 10.x)
+
+certmanager-issuer:
+  email: andy93.ak@gmail.com         # requis même avec certmanager.install: false (pas de "condition" sur ce sous-chart, toujours rendu)
+
+nginx-ingress:
+  enabled: false
+
+prometheus:
+  install: false
+
+gitlab-runner:
+  install: false
+
+registry:
+  enabled: false                     # ← enabled, pas install
+
+gitlab:
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+  sidekiq:
+    minReplicas: 1
+    maxReplicas: 1
+  gitlab-shell:
+    minReplicas: 1
+    maxReplicas: 1

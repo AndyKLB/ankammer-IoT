@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo
+set -euo pipefail
 
 # ── Couleurs pour l'affichage ─────────────────────────────────────
 RED='\033[0;31m'
@@ -19,12 +19,12 @@ step()    { echo -e "\n${BOLD}══ $1 ══${NC}"; }
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║   Installation IoT — Bonus                ║${NC}"
+echo -e "${BOLD}║   Installation IoT — Partie 3                ║${NC}"
 echo -e "${BOLD}║   K3d + Argo CD + GitOps                     ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
-step "Étape 1/5 : Docker"
+step "Étape 1/7 : Docker"
 if command -v docker &>/dev/null; then
     success "Docker already installed"
 else
@@ -42,9 +42,9 @@ if ! docker info &>/dev/null; then
 fi
 success "Docker is working!"
 
-step "Étape 2/5 : kubectl"
+step "Étape 2/7 : kubectl"
 if command -v kubectl &>/dev/null; then
-    success "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
+    success "kubectl already installed: $(kubectl version --client 2>/dev/null)"
 else
     info "Downloading kubectl..."
     KUBECTL_VER=$(curl -sL https://dl.k8s.io/release/stable.txt)
@@ -52,10 +52,10 @@ else
     curl -LO "https://dl.k8s.io/release/$KUBECTL_VER/bin/linux/amd64/kubectl"
     sudo chmod +x kubectl
     sudo mv kubectl /usr/local/bin/
-    success "Kubectl successfully installed: $(kubectl version --client --short 2>/dev/null)"
+    success "Kubectl successfully installed: $(kubectl version --client 2>/dev/null)"
 fi
 
-step "Étape 3/5 : K3d"
+step "Étape 3/7 : K3d"
 if command -v k3d &>/dev/null; then
     success "k3d already installed"
 else
@@ -64,7 +64,7 @@ else
     success "k3d successfully installed"
 fi
 
-step "Etape 4/5: Cluster K3d"
+step "Étape 4/7: Cluster K3d"
 CLUSTER_NAME="myCluster"
 if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
     warning "Cluster: '$CLUSTER_NAME' already created"
@@ -76,7 +76,7 @@ else
         --port "8080:80@loadbalancer" \
         --port "8443:443@loadbalancer" \
         --wait
-    success "Cluster: "$CLUSTER_NAME" created!"
+    success "Cluster: ${CLUSTER_NAME} created!"
 fi
 
 info "Waiting for all nodes to be Ready..."
@@ -85,13 +85,12 @@ echo ""
 kubectl get nodes
 echo ""
 
-step "Etape 5/5: Namespaces + ArgoCD"
+step "Étape 5/7: Namespaces + ArgoCD"
 info "Namespaces creation..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace gitlab --dry-run=client -o yaml | kubectl apply -f -
 success "Created namespaces: "
-kubectl get namespaces | grep -E "argocd|dev|gitlab"
+kubectl get namespaces | grep -E "argocd|dev"
 info "ArgoCD installation..."
 kubectl apply --server-side -n argocd \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -110,7 +109,7 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
-ARGOCD_CONF="${CONFS_DIR}/bonus_argocd-app.yaml"
+ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
     kubectl apply -f "${ARGOCD_CONF}"
@@ -120,9 +119,35 @@ else
     warning "Update repo's URL then apply it: kubectl apply -f p3/confs/argocd-app.yaml"
 fi
 
-ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
+step "Étape 6/7: Helm"
+if command -v helm &>/dev/null; then
+    success "Helm already installed: $(helm version --short)"
+else
+    info "Installation of Helm..."
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    success "Helm successfully installed: $(helm version --short)"
+fi
+
+step "Étape 7/7: GitLab"
+GITLAB_VALUES="${CONFS_DIR}/gitlab-values.yaml"
+helm repo add gitlab https://charts.gitlab.io/ 2>/dev/null || true
+helm repo update
+info "Installing GitLab..."
+helm upgrade --install gitlab gitlab/gitlab \
+    --namespace gitlab \
+    --create-namespace \
+    --version 9.11.8 \
+    -f "${GITLAB_VALUES}" \
+    --timeout 600s
+info "Waiting for GitLab to be ready..."
+kubectl wait --for=condition=Available \
+    deployment/gitlab-webservice-default \
+    -n gitlab \
+    --timeout=600s
+success "GitLab is ready!"
 GITLAB_PASS=$(kubectl -n gitlab get secret gitlab-gitlab-initial-root-password \
+    -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
+ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
 
 echo ""
@@ -131,20 +156,33 @@ echo -e "${BOLD}║                   INSTALLATION TERMINÉE !                  
 echo -e "${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${GREEN}✓${NC} Cluster K3d : ${CLUSTER_NAME}"
-echo -e "${GREEN}✓${NC} Namespaces  : argocd, dev, gitlab"
+echo -e "${GREEN}✓${NC} Namespaces  : argocd, dev"
 echo -e "${GREEN}✓${NC} Argo CD     : opérationnel"
 echo ""
 echo -e "${BOLD}─── Accès à l'interface Argo CD ───────────────────────────────${NC}"
-echo "  URL      : http://local.argo.com:80  (A rensigner dans /etc/hosts : 127.0.0.1 local.argo.com)"
+echo "  URL      : http://local.argo.com:8080  (A rensigner dans /etc/hosts : 127.0.0.1 local.argo.com)"
 echo "  User     : admin"
 echo "  Password : ${ARGOCD_PASS}"
 echo ""
 echo -e "${BOLD}─── Accès à l'application ─────────────────────────────────────${NC}"
-echo "  Test     : curl http://local.wil.com:8888/" (A rensigner dans /etc/hosts : 127.0.0.1 local.wil.com)
+echo "  Test     : curl http://local.ankammer.com:8080/ (A renseigner dans /etc/hosts : 127.0.0.1 local.ankammer.com)"
 echo "  Attendu  : {\"status\":\"ok\",\"message\":\"v1\"}"
 echo ""
-# echo -e "${BOLD}─── Accès à GitLab ─────────────────────────────────────────────${NC}"
-# echo "  URL      : http://local.gitlab.com:8080/ (A rensigner dans /etc/hosts : 127.0.0.1 local.gitlab.com)"
-# echo "  User     : root"
-# echo "  Password : ${GITLAB_PASS}"
-# echo ""
+echo -e "${BOLD}─── Accès à l'interface GitLab ───────────────────────────────────────${NC}"
+echo "  URL      : http://local.gitlab.com:8080  (A renseigner dans /etc/hosts : 127.0.0.1 local.gitlab.com)"
+echo "  User     : root"
+echo "  Password : ${GITLAB_PASS}"
+echo ""
+echo -e "${BOLD}─── Mise en place du dépôt local ───────────────────────────────${NC}"
+echo "  1. Créer un projet 'ankammer-iot' dans GitLab (visibilité publique) dans l'UI GitLab"
+echo "  2. cd <répertoire du projet>"
+echo "     git remote add gitlab http://local.gitlab.com:8080/root/ankammer-iot.git"
+echo "     git push gitlab Head"
+echo "  3. kubectl apply -f bonus/confs/argocd-app.yaml"
+echo ""
+echo -e "${BOLD}─── Démonstration de la mise à jour automatique ───────────────${NC}"
+echo "  1. Modifier p3/confs/deployment.yaml : v1 → v2"
+echo "  2. git add . && git commit -m 'v2' && git push"
+echo "  3. Attendre ~3 minutes (ou forcer dans l'UI Argo CD)"
+echo "  4. curl http://local.ankammer.com:8080/ → {\"message\": \"v2\"}"
+echo ""
