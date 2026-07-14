@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo
+set -euo pipefail
 
 # ── Couleurs pour l'affichage ─────────────────────────────────────
 RED='\033[0;31m'
@@ -44,7 +44,7 @@ success "Docker is working!"
 
 step "Étape 2/5 : kubectl"
 if command -v kubectl &>/dev/null; then
-    success "kubectl already installed: $(kubectl version --client --short 2>/dev/null)"
+    success "kubectl already installed: $(kubectl version --client 2>/dev/null)"
 else
     info "Downloading kubectl..."
     KUBECTL_VER=$(curl -sL https://dl.k8s.io/release/stable.txt)
@@ -52,7 +52,7 @@ else
     curl -LO "https://dl.k8s.io/release/$KUBECTL_VER/bin/linux/amd64/kubectl"
     sudo chmod +x kubectl
     sudo mv kubectl /usr/local/bin/
-    success "Kubectl successfully installed: $(kubectl version --client --short 2>/dev/null)"
+    success "Kubectl successfully installed: $(kubectl version --client 2>/dev/null)"
 fi
 
 step "Étape 3/5 : K3d"
@@ -76,7 +76,7 @@ else
         --port "8080:80@loadbalancer" \
         --port "8443:443@loadbalancer" \
         --wait
-    success "Cluster: "$CLUSTER_NAME" created!"
+    success "Cluster: ${CLUSTER_NAME} created!"
 fi
 
 info "Waiting for all nodes to be Ready..."
@@ -109,14 +109,15 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
-ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
+ARGOCD_DIR="${SCRIPT_DIR}/../argocd"
+ARGOCD_CONF="${ARGOCD_DIR}/argocd-app.yaml"
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
     kubectl apply -f "${ARGOCD_CONF}"
     success "Argo CD successfully configured!"
 else
-    warning "Argo cd config file not found in : ${CONFS_DIR}"
-    warning "Update repo's URL then apply it: kubectl apply -f p3/confs/argocd-app.yaml"
+    warning "Argo cd config file not found in : ${ARGOCD_DIR}"
+    warning "Update repo's URL then apply it: kubectl apply -f p3/argocd/argocd-app.yaml"
 fi
 
 ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
