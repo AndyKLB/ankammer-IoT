@@ -4,7 +4,7 @@ metadata:
   name: ankammer-playground
   namespace: dev
 spec:
-  replicas: 10
+  replicas: 1
   selector:
     matchLabels:
       app: ankammer-playground

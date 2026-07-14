@@ -1,4 +1,3 @@
-# bonus/confs/gitlab-values.yaml
 global:
   edition: ce
 
@@ -11,15 +10,17 @@ global:
   ingress:
     enabled: true
     class: traefik
-    configureCertmanager: false     # ← orthographe exacte, sous global.ingress
+    configureCertmanager: false
     tls:
       enabled: false
 
-  certmanager:
-    install: false                   # ← sous global (API chart 10.x)
+  kas:
+    enabled: false
+
+installCertmanager: false
 
 certmanager-issuer:
-  email: andy93.ak@gmail.com         # requis même avec certmanager.install: false (pas de "condition" sur ce sous-chart, toujours rendu)
+  email: ankammer@student.42.fr
 
 nginx-ingress:
   enabled: false
@@ -31,7 +32,7 @@ gitlab-runner:
   install: false
 
 registry:
-  enabled: false                     # ← enabled, pas install
+  enabled: false
 
 gitlab:
   webservice:
