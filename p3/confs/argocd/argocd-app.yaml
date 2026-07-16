@@ -9,6 +9,8 @@ spec:
     repoURL: https://github.com/AndyKLB/ankammer-IoT.git
     targetRevision: HEAD
     path: p3/confs
+    directory:
+      recurse:  false
   destination:
     server: https://kubernetes.default.svc
     namespace: dev

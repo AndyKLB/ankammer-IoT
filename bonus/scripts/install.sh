@@ -89,8 +89,9 @@ step "Étape 5/7: Namespaces + ArgoCD"
 info "Namespaces creation..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace gitlab --dry-run=client -o yaml | kubectl apply -f -
 success "Created namespaces: "
-kubectl get namespaces | grep -E "argocd|dev"
+kubectl get namespaces | grep -E "argocd|dev|gitlab"
 info "ArgoCD installation..."
 kubectl apply --server-side -n argocd \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -109,7 +110,14 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
-ARGOCD_CONF="${CONFS_DIR}/argocd-app.yaml"
+CONFS_ARGO_DIR="${SCRIPT_DIR}/../confs/argocd"
+ARGOCD_INGRESS="${CONFS_ARGO_DIR}/argocd-ingress.yaml"
+if [ -f "${ARGOCD_INGRESS}" ]; then
+    info "Exposing Argo CD via ingress..."
+    kubectl apply -f "${ARGOCD_INGRESS}"
+    success "Argo CD exposed on http://local.argo.com:8080"
+fi
+ARGOCD_CONF="${CONFS_ARGO_DIR}/argocd-app.yaml"
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
     kubectl apply -f "${ARGOCD_CONF}"
@@ -130,13 +138,22 @@ fi
 
 step "Étape 7/7: GitLab"
 GITLAB_VALUES="${CONFS_DIR}/gitlab-values.yaml"
+DEPS="${CONFS_DIR}/gitlab-dependencies.yaml"
+
+info "Installing GitLab dependencies..."
+kubectl apply -f "${DEPS}"
+info "Waiting for dependencies to be ready..."
+kubectl rollout status statefulset/postgresql -n gitlab --timeout=300s || true
+kubectl rollout status deployment/redis -n gitlab --timeout=300s || true
+kubectl rollout status deployment/minio -n gitlab --timeout=300s || true
+kubectl wait --for=condition=complete job/minio-buckets -n gitlab --timeout=300s || true
+success "postsgresql, redis and minio are ready! Buckets created!"
+
 helm repo add gitlab https://charts.gitlab.io/ 2>/dev/null || true
 helm repo update
 info "Installing GitLab..."
 helm upgrade --install gitlab gitlab/gitlab \
     --namespace gitlab \
-    --create-namespace \
-    --version 9.11.8 \
     -f "${GITLAB_VALUES}" \
     --timeout 600s
 info "Waiting for GitLab to be ready..."

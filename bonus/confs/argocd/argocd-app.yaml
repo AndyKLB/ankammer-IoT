@@ -9,6 +9,8 @@ spec:
     repoURL: http://gitlab-webservice-default.gitlab.svc.cluster.local:8181/root/ankammer-iot.git
     targetRevision: HEAD
     path: p3/confs
+    directory:
+      recurse:  false
   destination:
     server: https://kubernetes.default.svc
     namespace: dev

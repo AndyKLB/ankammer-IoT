@@ -16,11 +16,48 @@ global:
 
   kas:
     enabled: false
+  certmanager:
+    install:  false
+  
+  psql:
+    host: postgresql.gitlab.svc.cluster.local
+    port: 5432
+    database: gitlabhq_production
+    username: gitlab
+    password:
+      useSecret:  true
+      secret: postgresql-password
+      key:  password
+  
+  redis:
+    host: redis.gitlab.svc.cluster.local
+    port: 6379
+    auth:
+      enabled:  false
 
-installCertmanager: false
+  appConfig:
+    object_store:
+      enabled:  true
+      connection:
+        secret: gitlab-storage
+        key:  connection
+      artifacts:
+        bucket: gitlab-artifacts
+      lfs:
+        bucket: gitlab-lfs
+      uploads:
+        bucket: gitlab-uploads
+      packages:
+        bucket: gitlab-packages
+      backups:
+        bucket: gitlab-backups
+        tmpBucket:  gitlab-tmp
+
+# installCertmanager: false
 
 certmanager-issuer:
   email: ankammer@student.42.fr
+
 
 nginx-ingress:
   enabled: false
@@ -35,6 +72,13 @@ registry:
   enabled: false
 
 gitlab:
+  toolbox:
+    backups:
+      objectStorage:
+        backend: s3
+        config:
+          secret: gitlab-toolbox-backup-storage
+          key: config
   webservice:
     minReplicas: 1
     maxReplicas: 1

@@ -109,8 +109,14 @@ kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
 success "Argo CD is ready!"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFS_DIR="${SCRIPT_DIR}/../confs"
-ARGOCD_DIR="${SCRIPT_DIR}/../argocd"
+ARGOCD_DIR="${SCRIPT_DIR}/../confs/argocd"
 ARGOCD_CONF="${ARGOCD_DIR}/argocd-app.yaml"
+ARGOCD_INGRESS="${ARGOCD_DIR}/argocd-ingress.yaml"
+if [ -f "${ARGOCD_INGRESS}" ]; then
+    info "Exposing Argo CD via ingress..."
+    kubectl apply -f "${ARGOCD_INGRESS}"
+    success "Argo CD exposed on http://local.argo.com:8080"
+fi
 if [ -f "${ARGOCD_CONF}" ]; then
     info "Applying argo cd config..."
     kubectl apply -f "${ARGOCD_CONF}"
