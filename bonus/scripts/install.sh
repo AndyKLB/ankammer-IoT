@@ -162,6 +162,10 @@ kubectl wait --for=condition=Available \
     -n gitlab \
     --timeout=600s
 success "GitLab is ready!"
+
+info "Clearing cached git credentials for local.gitlab.com (GitLab was reinstalled, old creds are stale)..."
+git credential reject <<< $'protocol=http\nhost=local.gitlab.com:8080' 2>/dev/null || true
+
 GITLAB_PASS=$(kubectl -n gitlab get secret gitlab-gitlab-initial-root-password \
     -o jsonpath="{.data.password}" 2>/dev/null | base64 -d 2>/dev/null || echo "password not available")
 ARGOCD_PASS=$(kubectl -n argocd get secret argocd-initial-admin-secret \
