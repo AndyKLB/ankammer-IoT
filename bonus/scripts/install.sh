@@ -65,7 +65,7 @@ else
 fi
 
 step "Étape 4/7: Cluster K3d"
-CLUSTER_NAME="myCluster"
+CLUSTER_NAME="myClusterBonus"
 if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
     warning "Cluster: '$CLUSTER_NAME' already created"
     info "Checking status of '$CLUSTER_NAME'"

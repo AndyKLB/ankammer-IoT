@@ -17,6 +17,7 @@ spec:
     app: postgresql
   ports:
     - port: 5432
+      targetPort: 5432
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -37,6 +38,8 @@ spec:
       containers:
       - name: postgresql
         image: postgres:17-alpine
+        ports:
+          - containerPort:  5432
         env:
         - name: POSTGRES_USER
           value: gitlab
@@ -69,6 +72,7 @@ spec:
     app:  redis
   ports:
   - port: 6379
+    targetPort: 6379  # targetport optionnel si similaire a port qui correspond au containerPort qui lui est informatif non declaratif, le container lui meme designe son port d'ecoute
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -124,6 +128,7 @@ spec:
     app:  minio
   ports:
   - port: 9000
+    targetPort: 9000
 ---
 apiVersion: apps/v1
 kind: Deployment
